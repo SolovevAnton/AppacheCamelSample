@@ -1,0 +1,21 @@
+
+camel:
+    component:
+      spring-rabbitmq:
+          auto-declare: false
+    springboot:
+        main-run-controller: true
+rmq:
+    exchange:
+        name: amq.direct
+    queue:
+        new-pack-queue: px.vpd.new_pack
+spring:
+    rabbitmq:
+        host: 127.0.0.1
+        port: 5672
+        username: guest
+        password: guest
+target:
+    url:
+        new-pack: localhost:9090/general
