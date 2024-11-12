@@ -1,5 +1,10 @@
+server:
+    port: 8080
 
 camel:
+    servlet:
+        mapping:
+            context-path=/rest/*:
     component:
       spring-rabbitmq:
           auto-declare: false
@@ -19,3 +24,9 @@ spring:
 target:
     url:
         new-pack: localhost:9090/general
+
+logging:
+    level:
+        org:
+            apache:
+                camel=DEBUG:
