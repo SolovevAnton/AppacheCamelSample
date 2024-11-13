@@ -17,3 +17,11 @@ parent.
 To prevent this, the project POM contains empty overrides for these elements.
 If you manually switch to a different parent and actually want the inheritance, you need to remove those overrides.
 
+### Common problems
+
+#### 404 on rest endpoint camel side
+
+1. Don't use application.yml format to configure rest endpoint on camel side. Use only application .properties, for some
+   reason .yml is partly ignored by camel
+2. Check tom cat version. proved that tomcat 10+ is not working and returns 404 on custom endpoints
+3. 
