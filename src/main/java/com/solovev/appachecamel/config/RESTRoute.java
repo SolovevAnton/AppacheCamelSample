@@ -1,36 +1,50 @@
 package com.solovev.appachecamel.config;
 
-import org.apache.camel.CamelContext;
-import org.apache.camel.Exchange;
+import org.apache.camel.ExchangePattern;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.impl.DefaultCamelContext;
-import org.apache.camel.model.rest.RestBindingMode;
-import org.apache.camel.model.rest.RestParamType;
 import org.springframework.stereotype.Component;
 
 @Component
 public class RESTRoute extends RouteBuilder {
 
+    public static final String HELLO_ROUTE_ID = "hello";
+
+    public static final String RMQ_ROUTE_ID = "rabbitmq";
+
     @Override
     public void configure() throws Exception {
- /*       restConfiguration()
-                .component("servlet")
-                .inlineRoutes(true)
-                .host("localhost")
-                .port(8080)
-                .bindingMode(RestBindingMode.json); // Adjust binding mode if needed;*/
 
-        rest("/cole")
+        rest("/service")
                 .get("/helloWorld")
                 .outType(String.class)
                 .produces("text/plain")
-                .param()
-                .name("name")
-                .type(RestParamType.query)
-                .endParam()
-                .to("direct:helloWorld");
+                .to(getDirectRoute(HELLO_ROUTE_ID))
+                .post()
+                .consumes("application/json")
+                .produces("application/json")
+                .to(getDirectRoute(RMQ_ROUTE_ID));
 
-        from("direct:helloWorld")
-                .setBody(simple("Hello world, ${header.name}!"));
+        configureGetRoute();
+        configurePostRoute();
+    }
+
+    private void configureGetRoute() {
+        from(getDirectRoute(HELLO_ROUTE_ID))
+                .routeId(HELLO_ROUTE_ID)
+                .log("Responded to ping ${headers}")
+                .setBody(simple("Hello world!"));
+    }
+
+    private void configurePostRoute() {
+        from(getDirectRoute(RMQ_ROUTE_ID))
+                .routeId(RMQ_ROUTE_ID)
+                .setBody(e-> e.getIn().getBody(String.class))
+                .to(ExchangePattern.InOnly,"spring-rabbitmq:{{source.rmq.exchange.name}}?routingKey={{target.rmq.camel-reply}}")
+                .log("Send to queue ${body}");
+
+    }
+
+    private String getDirectRoute(String routeName) {
+        return "direct:" + routeName;
     }
 }

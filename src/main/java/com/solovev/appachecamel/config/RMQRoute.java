@@ -13,8 +13,8 @@ public class RMQRoute extends RouteBuilder {
 
     @Override
     public void configure() throws Exception {
-        from("spring-rabbitmq:{{rmq.exchange.name}}" +
-             "?queues={{rmq.queue.new-pack-queue}}" +
+        from("spring-rabbitmq:{{source.rmq.exchange.name}}" +
+             "?queues={{source.rmq.queue.new}}" +
              "&autoDeclare=false")
                 .routeId(ROUTE_ID)
                 .log("Body: ${body}")
