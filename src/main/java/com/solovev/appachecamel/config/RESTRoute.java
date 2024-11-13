@@ -1,8 +1,14 @@
 package com.solovev.appachecamel.config;
 
+import com.solovev.appachecamel.model.Person;
+import org.apache.camel.Exchange;
 import org.apache.camel.ExchangePattern;
 import org.apache.camel.builder.RouteBuilder;
+import org.apache.camel.model.dataformat.JsonLibrary;
+import org.apache.camel.model.rest.RestBindingMode;
 import org.springframework.stereotype.Component;
+
+import java.time.LocalDateTime;
 
 @Component
 public class RESTRoute extends RouteBuilder {
@@ -18,33 +24,44 @@ public class RESTRoute extends RouteBuilder {
                 .get("/helloWorld")
                 .outType(String.class)
                 .produces("text/plain")
-                .to(getDirectRoute(HELLO_ROUTE_ID))
+                .to(createDirectRoute(HELLO_ROUTE_ID))
                 .post()
                 .consumes("application/json")
-                .produces("application/json")
-                .to(getDirectRoute(RMQ_ROUTE_ID));
+                .bindingMode(RestBindingMode.json)
+                .type(Person.class)
+                .responseMessage(201,"Sent to RMQ")
+                .to(createDirectRoute(RMQ_ROUTE_ID));
 
         configureGetRoute();
         configurePostRoute();
     }
 
     private void configureGetRoute() {
-        from(getDirectRoute(HELLO_ROUTE_ID))
+        from(createDirectRoute(HELLO_ROUTE_ID))
                 .routeId(HELLO_ROUTE_ID)
                 .log("Responded to ping ${headers}")
                 .setBody(simple("Hello world!"));
     }
 
     private void configurePostRoute() {
-        from(getDirectRoute(RMQ_ROUTE_ID))
+        from(createDirectRoute(RMQ_ROUTE_ID))
                 .routeId(RMQ_ROUTE_ID)
-                .setBody(e-> e.getIn().getBody(String.class))
+                .outputType(Person.class)
+                .process(this::modifyPerson)
+                .marshal().json(JsonLibrary.Jackson)
                 .to(ExchangePattern.InOnly,"spring-rabbitmq:{{source.rmq.exchange.name}}?routingKey={{target.rmq.camel-reply}}")
-                .log("Send to queue ${body}");
+                .log("Send to queue ${body}")
+                .end();
 
     }
 
-    private String getDirectRoute(String routeName) {
+    private void modifyPerson(Exchange exchange){
+        Person person = exchange.getIn().getBody(Person.class);
+        person.setTimeStamp(LocalDateTime.now().toString());
+        exchange.getIn().setBody(person);
+    }
+
+    private String createDirectRoute(String routeName) {
         return "direct:" + routeName;
     }
 }
